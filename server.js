@@ -22,7 +22,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Health check route
+
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
@@ -34,7 +34,7 @@ app.get("/", (req, res) => {
 
 app.use(errorHandler);
 
-// Start server
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
