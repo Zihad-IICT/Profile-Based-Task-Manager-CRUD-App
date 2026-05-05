@@ -64,7 +64,6 @@ exports.getTasks = async (req, res, next) => {
       params.push(status);
     }
 
-    // 🔥 🔥 SEARCH by title (এখানেই add করবা)
     if (search) {
       query += " AND title LIKE ?";
       params.push(`%${search}%`);
