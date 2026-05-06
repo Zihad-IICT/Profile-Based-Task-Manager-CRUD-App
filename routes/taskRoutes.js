@@ -1,8 +1,9 @@
 const express = require("express");
-const pool = require("../config/db");
+const router = express.Router();
 
 const {
   createTask,
+  getTasks,
   updateTask,
   deleteTask,
 } = require("../controllers/taskController");
@@ -10,46 +11,25 @@ const {
 const { protect } = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
-const router = express.Router();
-
+// All routes protected
 router.use(protect);
 
+// Create Task
+router.post("/", createTask);
 
+// Get My Tasks + Filtering + Search
+router.get("/my-tasks", getTasks);
 
-router.post("/", async (req, res) => {
-  const { title, description } = req.body;
+//  Admin → Get All Tasks
+router.get("/all-tasks", roleMiddleware("admin"), (req, res, next) => {
+  req.query.all = "true"; // trick to reuse controller
+  next();
+}, getTasks);
 
-  await pool.execute(
-    "INSERT INTO tasks (title, description, user_id) VALUES (?, ?, ?)",
-    [title, description, req.user.id]
-  );
-
-  res.json({ message: "Task created" });
-});
-
-
-router.get("/my-tasks", async (req, res) => {
-  const [tasks] = await pool.execute(
-    "SELECT * FROM tasks WHERE user_id = ?",
-    [req.user.id]
-  );
-
-  res.json(tasks);
-});
-
-
-
-router.get(
-  "/all-tasks",
-  roleMiddleware("admin"),
-  async (req, res) => {
-    const [tasks] = await pool.execute("SELECT * FROM tasks");
-    res.json(tasks);
-  }
-);
-
-
+// Update Task
 router.put("/:id", updateTask);
+
+// Delete Task
 router.delete("/:id", deleteTask);
 
 module.exports = router;

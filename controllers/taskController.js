@@ -19,51 +19,36 @@ exports.createTask = async (req, res, next) => {
   }
 };
 
-// GET TASKS (only own tasks, admin can see all)
+// GET TASKS (Filtering + Search + Admin Support)
 exports.getTasks = async (req, res, next) => {
   try {
-    if (req.user.role === "admin" && req.query.all === "true") {
-      const [rows] = await pool.execute(
-        "SELECT t.*, u.username FROM tasks t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC"
-      );
-      return res.json(rows);
-    }
-
-    const [rows] = await pool.execute(
-      "SELECT * FROM tasks WHERE user_id=? ORDER BY created_at DESC",
-      [req.user.id]
-    );
-
-    res.json(rows);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// GET SINGLE TASK
-exports.getTasks = async (req, res, next) => {
-  try {
-    const { status, search } = req.query; // 👈 এখানে search add
+    const { status, search } = req.query;
     const userId = req.user.id;
     const isAdmin = req.user.role === "admin";
 
     let query = "";
     let params = [];
 
-    // Admin → see all
+    // 🔹 Admin → all tasks
     if (isAdmin && req.query.all === "true") {
-      query = "SELECT * FROM tasks WHERE 1=1";
+      query = `
+        SELECT t.*, u.username 
+        FROM tasks t
+        JOIN users u ON t.user_id = u.id
+        WHERE 1=1
+      `;
     } else {
       query = "SELECT * FROM tasks WHERE user_id=?";
       params.push(userId);
     }
 
-    // 🔹 FILTER by status
+    // 🔹 Filter by status
     if (status) {
       query += " AND status=?";
       params.push(status);
     }
 
+    // 🔹 Search by title
     if (search) {
       query += " AND title LIKE ?";
       params.push(`%${search}%`);
@@ -78,6 +63,7 @@ exports.getTasks = async (req, res, next) => {
     next(err);
   }
 };
+
 // UPDATE TASK
 exports.updateTask = async (req, res, next) => {
   try {
@@ -94,6 +80,7 @@ exports.updateTask = async (req, res, next) => {
 
     const task = rows[0];
 
+    // Authorization check
     if (task.user_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -108,7 +95,7 @@ exports.updateTask = async (req, res, next) => {
       ]
     );
 
-    res.json({ message: "Task updated" });
+    res.json({ message: "Task updated successfully" });
   } catch (err) {
     next(err);
   }
@@ -128,13 +115,14 @@ exports.deleteTask = async (req, res, next) => {
 
     const task = rows[0];
 
+    //  Authorization check
     if (task.user_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
 
     await pool.execute("DELETE FROM tasks WHERE id=?", [req.params.id]);
 
-    res.json({ message: "Task deleted" });
+    res.json({ message: "Task deleted successfully" });
   } catch (err) {
     next(err);
   }
